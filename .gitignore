@@ -1,0 +1,13 @@
+.env
+/tmp/fwkey.txt
+.venv-infer/
+.DS_Store
+__pycache__/
+*.pyc
+
+# adapter weights live on Hugging Face, not GitHub
+adapter/
+
+# internal working notes — not for the public repo
+STATUS.md
+comedian-demo.pdf

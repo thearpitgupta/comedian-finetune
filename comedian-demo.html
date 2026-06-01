@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teaching an AI to Do Late-Night Comedy</title>
+<style>
+  :root{
+    --ink:#1a1a2e; --muted:#6b7280; --line:#e5e7eb; --bg:#f7f7fb;
+    --base:#94a3b8; --base-bg:#f1f5f9; --tuned:#7c3aed; --tuned-bg:#f5f3ff;
+    --accent:#7c3aed; --code:#0f172a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:var(--bg); line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .wrap{max-width:820px;margin:0 auto;padding:0 24px 80px}
+  header{
+    background:linear-gradient(135deg,#1a1a2e 0%,#3b1d6e 55%,#7c3aed 100%);
+    color:#fff; padding:64px 24px 56px; text-align:center;
+  }
+  header .emoji{font-size:52px;display:block;margin-bottom:12px}
+  header h1{font-size:38px;line-height:1.15;font-weight:800;letter-spacing:-.02em;max-width:720px;margin:0 auto}
+  header p{margin:16px auto 0;max-width:560px;font-size:18px;opacity:.85}
+  .badges{margin-top:24px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+    padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600}
+  section{margin-top:48px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700;margin-bottom:14px}
+  h3{font-size:26px;font-weight:800;letter-spacing:-.01em;margin-bottom:14px;line-height:1.2}
+  p.lead{font-size:18px;color:#374151}
+  .steps{list-style:none;counter-reset:s;margin-top:8px}
+  .steps li{counter-increment:s;position:relative;padding:14px 0 14px 52px;border-bottom:1px solid var(--line)}
+  .steps li:last-child{border-bottom:0}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:12px;width:34px;height:34px;
+    background:var(--tuned-bg);color:var(--tuned);border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-weight:800;font-size:15px}
+  .steps b{font-weight:700}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px 30px;
+    box-shadow:0 1px 3px rgba(16,24,40,.04)}
+  .stat{display:flex;align-items:baseline;gap:14px;margin-bottom:10px}
+  .stat .big{font-size:54px;font-weight:800;color:var(--tuned);letter-spacing:-.03em;line-height:1}
+  .stat .lbl{font-size:17px;color:var(--muted);font-weight:600}
+  .sub{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:26px 0 10px}
+  .stephead{display:flex;align-items:center;gap:13px;margin:40px 0 12px}
+  .stephead .num{width:32px;height:32px;border-radius:50%;background:var(--tuned);color:#fff;font-weight:800;
+    font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(124,58,237,.3)}
+  .stephead .t{font-size:20px;font-weight:800;letter-spacing:-.01em;line-height:1.2}
+  /* data sample */
+  .datarow{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:6px}
+  .datarow .turn{padding:13px 18px;border-top:1px solid var(--line);font-size:14.5px}
+  .datarow .turn:first-child{border-top:0}
+  .datarow .role{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+    padding:2px 8px;border-radius:5px;margin-right:8px;display:inline-block}
+  .role.sys{background:#fef3c7;color:#92660b}
+  .role.usr{background:#dbeafe;color:#1e40af}
+  .role.ast{background:var(--tuned-bg);color:var(--tuned)}
+  .datarow .turn.astline{background:#faf9ff}
+  .filehint{font-size:12.5px;color:var(--muted);margin-top:8px}
+  /* prompt copy box */
+  .promptbox{background:var(--code);border-radius:14px;overflow:hidden;margin-top:6px}
+  .promptbox .bar{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;
+    background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08)}
+  .promptbox .bar span{color:#94a3b8;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+  .promptbox button{background:var(--tuned);color:#fff;border:0;padding:7px 16px;border-radius:8px;
+    font-size:13px;font-weight:700;cursor:pointer;transition:background .15s}
+  .promptbox button:hover{background:#6d28d9}
+  .promptbox button.done{background:#16a34a}
+  .promptbox pre{padding:18px 18px;color:#e2e8f0;font-size:13.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+  /* real-file card */
+  .filecard{background:var(--code);border-radius:14px;overflow:hidden;margin-top:6px}
+  .filecard .fbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 16px;
+    background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
+  .filecard .fname{color:#e2e8f0;font-size:13.5px;font-weight:700}
+  .filecard .fsize{color:#c4b5fd;font-size:12.5px;font-weight:800;white-space:nowrap}
+  .filecard .fmeta{padding:12px 16px 2px;color:#94a3b8;font-size:12px}
+  .filecard pre{padding:8px 16px 16px;color:#cbd5e1;font-size:12.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+  .filecard .dim{color:#a78bfa;font-weight:700}
+  .filecard .more{color:#64748b}
+  /* under the hood */
+  .speclist{margin-top:6px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .specitem{display:grid;grid-template-columns:34% 1fr;gap:20px;padding:18px 22px;border-top:1px solid var(--line)}
+  .specitem:first-child{border-top:0}
+  .specitem .k{font-weight:700;font-size:15px;line-height:1.35}
+  .specitem .v{font-size:13px;color:var(--tuned);margin-top:4px;font-weight:600}
+  .specitem .d{font-size:14.5px;color:#4b5563;line-height:1.55}
+  @media(max-width:580px){.specitem{grid-template-columns:1fr;gap:6px}}
+  .compare{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin:6px 0 8px}
+  .cmodel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 16px;display:flex;flex-direction:column}
+  .chead{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px;text-align:center}
+  .cstack{flex:1;display:flex;flex-direction:column;gap:8px}
+  .blk{border-radius:10px;padding:0 14px;display:flex;flex-direction:column;justify-content:center;text-align:center}
+  .blk.frozen-blk{background:#e2e8f0;color:#475569;height:118px}
+  .blk.adapter-blk{background:var(--tuned);color:#fff;height:40px;box-shadow:0 5px 14px rgba(124,58,237,.32)}
+  .blk.ghost{border:1.5px dashed #d1d5db;height:40px;color:#9ca3af}
+  .blabel{font-weight:700;font-size:14px}
+  .bsub{font-size:11px;opacity:.82;margin-top:2px}
+  .cfoot{margin-top:14px;font-size:12.5px;color:#374151;text-align:center;font-weight:600}
+  .cfoot .pill{display:inline-block;background:var(--tuned-bg);color:var(--tuned);padding:2px 9px;border-radius:999px}
+  .cplus{display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--tuned);font-weight:800}
+  @media(max-width:580px){.compare{grid-template-columns:1fr}.cplus{transform:rotate(90deg);padding:4px 0}}
+  /* how-it-works flow */
+  .flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px 18px;margin-top:6px}
+  .flow .node{border-radius:10px;padding:12px 15px;font-size:13px;font-weight:700;text-align:center;line-height:1.35}
+  .flow .io{background:#1a1a2e;color:#fff;max-width:130px}
+  .flow .arr{font-size:22px;color:#c4b5fd;font-weight:800}
+  .flow .pair{display:flex;flex-direction:column;gap:5px;align-items:stretch;min-width:190px}
+  .flow .pair .node{font-weight:600}
+  .flow .froze{background:#e2e8f0;color:#475569}
+  .flow .adapt{background:var(--tuned);color:#fff;box-shadow:0 4px 12px rgba(124,58,237,.28)}
+  .flow .merge{font-size:11.5px;color:var(--muted);text-align:center;font-weight:700;letter-spacing:.03em}
+  @media(max-width:580px){.flow{flex-direction:column}.flow .arr{transform:rotate(90deg)}.flow .pair{width:100%}}
+  /* adapter anatomy (low-rank decomposition) */
+  .anat{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:30px 20px;margin-top:6px}
+  .anat .col{display:flex;flex-direction:column;align-items:center;gap:10px;max-width:200px}
+  .anat .cap2{font-size:12px;color:#475569;text-align:center;line-height:1.45;font-weight:600}
+  .anat .cap2 b{color:var(--ink)}
+  .anat .bigsq{width:120px;height:120px;background:#e2e8f0;border-radius:8px;display:flex;
+    align-items:center;justify-content:center;color:#64748b;font-size:11px;font-weight:800;text-align:center;padding:10px}
+  .anat .op{font-size:26px;color:#9ca3af;font-weight:800;align-self:center}
+  .anat .strips{display:flex;align-items:center;gap:9px}
+  .anat .sA{width:22px;height:120px;background:var(--tuned);border-radius:5px;box-shadow:0 4px 12px rgba(124,58,237,.25)}
+  .anat .sB{width:120px;height:22px;background:var(--tuned);border-radius:5px;box-shadow:0 4px 12px rgba(124,58,237,.25)}
+  .anat .times{font-size:18px;color:var(--tuned);font-weight:800}
+  .anat .rk{font-size:11px;font-weight:800;color:var(--tuned);text-transform:uppercase;letter-spacing:.04em}
+  @media(max-width:580px){.anat{flex-direction:column}.anat .op{transform:rotate(90deg)}}
+  .why{background:var(--tuned-bg);border-left:3px solid var(--tuned);border-radius:0 10px 10px 0;
+    padding:16px 20px;margin-top:18px;font-size:15px}
+  .qlora{background:#fff;border:1px solid var(--line);border-radius:16px;padding:4px 30px;margin-top:8px}
+  .qlora dl{margin:0}
+  .qlora dt{font-weight:700;margin-top:22px;font-size:17px}
+  .qlora dd{margin:6px 0 22px;color:#374151}
+  .demo{display:grid;gap:22px;margin-top:8px}
+  .joke{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .joke .headline{background:#1a1a2e;color:#fff;padding:16px 22px;font-size:16px;font-weight:600}
+  .joke .headline .tag{font-size:12px;opacity:.6;display:block;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+  .rows{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+  .row{padding:18px 22px}
+  .rows .row.tuned{border-left:1px solid var(--line)}
+  .row .who{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px}
+  .row.base .who{color:var(--base)}
+  .row.tuned{background:var(--tuned-bg)}
+  .row.tuned .who{color:var(--tuned)}
+  .row p{font-size:15px;color:#1f2937}
+  .row .note{color:var(--muted);font-style:italic}
+  @media(max-width:580px){.rows{grid-template-columns:1fr}.rows .row.tuned{border-left:0;border-top:1px solid var(--line)}}
+  .takeaway{background:linear-gradient(135deg,#1a1a2e,#3b1d6e);color:#fff;border-radius:16px;padding:32px 34px}
+  .takeaway h3{color:#fff}
+  .takeaway p{font-size:18px;opacity:.92}
+  .takeaway .hl{color:#c4b5fd;font-weight:700}
+  .notes{font-size:15px;color:#374151}
+  .notes li{margin:10px 0 10px 18px}
+  footer{margin-top:56px;padding-top:24px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;text-align:center}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @media print{.wrap{padding-bottom:20px}section{break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="emoji">🎤</span>
+  <h1>Teaching an AI to Do Late-Night Comedy</h1>
+  <p>We fine-tuned an open-source model to riff on the news like a late-night host — in the style of Trevor Noah.</p>
+  <div class="badges">
+    <span class="badge">Qwen2.5-7B</span>
+    <span class="badge">QLoRA fine-tune</span>
+    <span class="badge">138 examples</span>
+    <span class="badge">~4 min · a few cents</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <h2>The build</h2>
+    <h3>What we did</h3>
+    <ol class="steps">
+      <li><b>Built a dataset</b> — 138 examples (118 to train on, 20 held back for testing). Each is a <i>headline → in-character bit</i>, paired with one consistent "you are a late-night host" instruction. Spread across ~12 topics and 6 joke formats so the model learns the <i>style</i>, not specific jokes.</li>
+      <li><b>Fine-tuned Qwen2.5-7B</b> — an open-source model — using a technique called QLoRA (explained below). About four minutes of training, for a few cents.</li>
+      <li><b>Tested base vs. tuned</b> — ran the 20 held-back headlines through both the original model and our fine-tuned one, and compared the comedy head-to-head.</li>
+    </ol>
+
+    <div class="sub">What one training example looks like</div>
+    <div class="datarow">
+      <div class="turn"><span class="role sys">system</span>You are a late-night talk show host in the style of Trevor Noah… <span style="color:var(--muted)">(the persona — identical on every row; full text below)</span></div>
+      <div class="turn"><span class="role usr">user</span>A new study found people are using AI chatbots as their therapists now.</div>
+      <div class="turn astline"><span class="role ast">assistant</span>People are now telling their deepest secrets to a chatbot. And honestly? I get it. It never judges you, it's available at 3am, and it's cheaper than a real therapist… You go, “I think my marriage is falling apart,” and it goes, <i>[robotic, chipper]</i> “That's a great observation! Would you like me to write a poem about it?” No! I want you to tell me to leave him, Greg! That's what my aunties are for.</div>
+    </div>
+    <p class="filehint">138 examples like this — the <span class="mono">system</span> sets the voice, the <span class="mono">user</span> is the headline, and the <span class="mono">assistant</span> answer is what the model learns to produce.</p>
+  </section>
+
+  <section>
+    <h2>The voice</h2>
+    <h3>The persona prompt</h3>
+    <p class="lead">This single instruction sits on top of every example — it's what tells the model <i>who to be</i>. Copy it and try it in any chatbot:</p>
+    <div class="promptbox">
+      <div class="bar"><span>System prompt</span><button id="copyBtn" onclick="copyPrompt()">Copy</button></div>
+      <pre id="promptText">You are a late-night talk show host in the style of Trevor Noah. You riff on real news headlines with a global, outsider's perspective, often comparing America to the rest of the world. Your comedy builds from calm observation to incredulous disbelief, uses character act-outs and accents, finds the human absurdity rather than cheap shots, and lands on a sharper point. You address the audience warmly ('my friends,' 'people').</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>The technique</h2>
+    <h3>What is QLoRA — and why we chose it</h3>
+    <div class="qlora">
+      <dl>
+        <dt>LoRA — train a small "add-on," not the whole model</dt>
+        <dd>A 7-billion-parameter model is huge and expensive to retrain. LoRA (Low-Rank Adaptation) freezes the original model untouched and trains a <b>tiny set of extra weights</b> — well under 1% of the size — that bolt onto it. You're nudging the model's behavior, not rebuilding it.</dd>
+        <dt>The "Q" — quantized, so it runs cheap</dt>
+        <dd>QLoRA loads the big base model in a <b>compressed (4-bit) form</b> so the whole thing fits on a single modest GPU during training. Same result, a fraction of the hardware and cost.</dd>
+      </dl>
+    </div>
+    <div class="why">
+      <b>Why we chose it:</b> with only ~120 examples, fully retraining a 7B model would be slow, expensive, and would "overfit" — memorize our jokes instead of learning the style. QLoRA is the industry-standard way to teach a model a <i>voice or persona</i>: fast, cheap, and it produces a lightweight add-on that rides on top of the original model. Teaching tone and style is exactly what fine-tuning is <i>good</i> at.
+    </div>
+  </section>
+
+  <section>
+    <h2>Under the hood</h2>
+    <h3>What changed — in three steps</h3>
+
+    <div class="stephead"><span class="num">1</span><span class="t">We froze the model we started with</span></div>
+    <p class="lead">We left Qwen's 7.6 billion weights completely untouched. The only new thing is a small <b>adapter</b> — about 40 million weights, <b>≈0.5% of the model</b>.</p>
+    <div class="compare">
+      <div class="cmodel">
+        <div class="chead">Base model</div>
+        <div class="cstack">
+          <div class="blk frozen-blk"><div class="blabel">Qwen2.5-7B</div><div class="bsub">7.6B weights · frozen</div></div>
+          <div class="blk ghost"><div class="blabel">no adapter</div></div>
+        </div>
+        <div class="cfoot">trained by us: <b>0</b></div>
+      </div>
+      <div class="cplus">+</div>
+      <div class="cmodel">
+        <div class="chead">Our fine-tuned model</div>
+        <div class="cstack">
+          <div class="blk frozen-blk"><div class="blabel">Qwen2.5-7B</div><div class="bsub">7.6B weights · unchanged</div></div>
+          <div class="blk adapter-blk"><div class="blabel">+ comedy adapter (LoRA)</div><div class="bsub">~40M weights · ≈0.5% · trained</div></div>
+        </div>
+        <div class="cfoot">trained by us: <span class="pill">~40M · ≈0.5%</span></div>
+      </div>
+    </div>
+    <p class="filehint" style="text-align:center">Tall grey = everything we left alone. Small purple = the only part we built.</p>
+
+    <div class="stephead"><span class="num">2</span><span class="t">We added a tiny adapter — here's what it is</span></div>
+    <p class="lead">The trick that keeps it small: instead of retraining one of Qwen's giant weight grids, we train <b>two skinny strips</b> beside it that multiply into a same-sized change — for a fraction of the numbers.</p>
+    <div class="anat">
+      <div class="col">
+        <div class="bigsq">~3,584 × 3,584</div>
+        <div class="cap2">One of <b>Qwen's</b> weight grids<br><b>~12.8M numbers · frozen</b><br>(we never retrain this)</div>
+      </div>
+      <div class="op">→</div>
+      <div class="col">
+        <div class="strips">
+          <div class="sA"></div>
+          <div class="times">×</div>
+          <div class="sB"></div>
+        </div>
+        <div class="rk">↑ skinny side = rank 16 ↑</div>
+        <div class="cap2">The <b>adapter</b>: two skinny strips we train<br><b>~115K numbers · &lt;1%</b> of that grid</div>
+      </div>
+    </div>
+    <p class="filehint" style="text-align:center">One pair of strips sits beside <b>7 grids in each of the 28 layers</b> — about <b>390 small tables in all</b>, holding the ~40M numbers, saved as one 77 MB file. (Each strip is thin in one direction — 16 — and as wide as that part of the model in the other.) <b>Training</b> is what filled those numbers in. The three things <i>we</i> chose about them:</p>
+    <div class="speclist">
+      <div class="specitem">
+        <div><div class="k">Where the strips go</div><div class="v mono">attention + feed-forward · all 28 layers</div></div>
+        <div class="d">Which of Qwen's grids get a pair of strips beside them. Each layer has two kinds — <b>attention</b> (what to focus on) and <b>feed-forward</b> (how to process it). We added strips to both, in all 28 layers, so the nudge reaches the whole model.</div>
+      </div>
+      <div class="specitem">
+        <div><div class="k">How skinny the strips are</div><div class="v mono">rank (r) = 16</div></div>
+        <div class="d"><b>Rank</b> is the width of those strips (the purple "16" side above). Wider = more room to learn, but more risk of just memorizing the jokes. 16 is the sweet spot for picking up a <i>style</i> from a small dataset.</div>
+      </div>
+      <div class="specitem">
+        <div><div class="k">How strong the nudge is</div><div class="v mono">alpha = 32</div></div>
+        <div class="d"><b>Alpha</b> is the volume dial on the strips' effect when it's added back to Qwen's output. Rule of thumb is alpha ≈ 2× rank (so 32): loud enough that the comedy lands, gentle enough that Qwen stays smart.</div>
+      </div>
+    </div>
+    <p class="filehint">We also kept the <b>training recipe</b> short — 3 passes over the examples at a standard step size — so it picks up the style without memorizing jokes word-for-word. (That shapes the strips' values but isn't itself part of the final adapter.)</p>
+
+    <div class="sub">…and here it is as a real file</div>
+    <p class="lead">All of that ships as one file you can actually open. Here's a peek at our adapter's real contents — note the <span style="color:var(--tuned);font-weight:700">[16 × …]</span> shapes (that's the rank-16 skinny side showing up):</p>
+    <div class="filecard">
+      <div class="fbar">
+        <div class="fname mono">📦 adapter_model.safetensors</div>
+        <div class="fsize">80.8 MB &nbsp;·&nbsp; vs. base model ~15 GB</div>
+      </div>
+      <div class="fmeta mono">392 tables · 40,370,176 numbers</div>
+      <pre class="mono">layer 0 · attn.q_proj.lora_A    <span class="dim">[16 × 3584]</span>
+layer 0 · attn.q_proj.lora_B    <span class="dim">[3584 × 16]</span>
+layer 0 · mlp.gate_proj.lora_A  <span class="dim">[16 × 3584]</span>
+layer 0 · mlp.gate_proj.lora_B  <span class="dim">[18944 × 16]</span>
+<span class="more">… 388 more tables — one pair per spot, per layer</span></pre>
+    </div>
+
+    <div class="stephead"><span class="num">3</span><span class="t">When you use it, the adapter nudges every word</span></div>
+    <p class="lead">At runtime the adapter doesn't <i>replace</i> anything. At each layer it runs <b>alongside</b> Qwen — both see the same input, and their outputs are <b>added together</b>. Qwen does the thinking; the adapter adds the comedic nudge.</p>
+    <div class="flow">
+      <div class="node io">a word<br>coming in</div>
+      <div class="arr">→</div>
+      <div class="pair">
+        <div class="node froze">Qwen's layer — frozen<br><span style="font-weight:500;opacity:.8">does the real thinking</span></div>
+        <div class="merge">＋ added together</div>
+        <div class="node adapt">comedy adapter — trained<br><span style="font-weight:500;opacity:.85">adds the comedic nudge</span></div>
+      </div>
+      <div class="arr">→</div>
+      <div class="node io">next word —<br>nudged funnier</div>
+    </div>
+    <p class="filehint" style="text-align:center">Pop the adapter off → plain Qwen. Snap it on → the comedian. It's a ~77 MB file, so you could keep a shelf of them (comedian, lawyer, pirate…) on one base.</p>
+  </section>
+
+  <section>
+    <h2>The result</h2>
+    <div class="card">
+      <div class="stat"><span class="big">13/20</span><span class="lbl">held-out headlines where the tuned model was the funnier, more in-character take</span></div>
+      <p class="lead">It worked — modestly but clearly. The tuned model commits to <b>act-outs</b>, has <b>tighter comedic rhythm</b>, and actually <b>finishes the bit</b> (the original tends to ramble and trail off). It even started introducing itself as "Trevor Noah."</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>See it in action</h2>
+    <h3>Before &amp; after</h3>
+    <div class="demo">
+
+      <div class="joke">
+        <div class="headline"><span class="tag">The prompt</span>“Cat inherits $300,000 fortune from late owner.”</div>
+        <div class="rows">
+          <div class="row base">
+            <div class="who">Before · original model</div>
+            <p>“Even our pets are better off than us! …When was the last time your dog asked to go to the bank?”</p>
+          </div>
+          <div class="row tuned">
+            <div class="who">★ After · fine-tuned</div>
+            <p>“Humans have decided to trust a cat with their life savings… if you want your money managed by someone who'll probably still use it as a litter box, you might want to get yourself a cat.”</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="joke">
+        <div class="headline"><span class="tag">The prompt</span>“Streaming services keep raising prices and adding ads to plans people already pay for.”</div>
+        <div class="rows">
+          <div class="row base">
+            <div class="who">Before · original model</div>
+            <p>“A guy walked into a bar and ordered a drink. The bartender said, ‘every time you raise the price of that drink, we have to add an ad…’” <span class="note">(meanders into a bar-joke framing)</span></p>
+          </div>
+          <div class="row tuned">
+            <div class="who">★ After · fine-tuned</div>
+            <p>“Streaming services! They're like the cable companies of the internet age. But instead of just raising prices, they've gone full Thelma and Louise! First they raise the price, then they throw in ads… and then they make you pay extra for the no-ad plan. It's like they're trying to give us all heart attacks!”</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    Late-night comedian fine-tune · AI-Native PM cohort · built by driving Claude Code
+  </footer>
+
+</div>
+
+<script>
+function copyPrompt(){
+  var t = document.getElementById('promptText').innerText;
+  navigator.clipboard.writeText(t).then(function(){
+    var b = document.getElementById('copyBtn');
+    b.textContent = 'Copied ✓'; b.classList.add('done');
+    setTimeout(function(){ b.textContent='Copy'; b.classList.remove('done'); }, 1800);
+  });
+}
+</script>
+</body>
+</html>
