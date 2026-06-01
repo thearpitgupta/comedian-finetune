@@ -155,6 +155,9 @@
   .notes{font-size:15px;color:#374151}
   .notes li{margin:10px 0 10px 18px}
   footer{margin-top:56px;padding-top:24px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;text-align:center}
+  .footer-links{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+  .footer-links a{color:var(--accent);font-weight:600;text-decoration:none}
+  .footer-links a:hover{text-decoration:underline}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @media print{.wrap{padding-bottom:20px}section{break-inside:avoid}}
 </style>
@@ -357,6 +360,10 @@ layer 0 · mlp.gate_proj.lora_B  <span class="dim">[18944 × 16]</span>
   </section>
 
   <footer>
+    <div class="footer-links">
+      <a href="https://github.com/thearpitgupta/comedian-finetune" target="_blank" rel="noopener">Source &amp; dataset on GitHub →</a>
+      <a href="https://huggingface.co/thearpitgupta/comedian-lora-v2" target="_blank" rel="noopener">Model on Hugging Face →</a>
+    </div>
     Late-night comedian fine-tune · AI-Native PM cohort · built by driving Claude Code
   </footer>
 
